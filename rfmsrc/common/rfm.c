@@ -144,8 +144,8 @@ void RFM_init(void)
 		RFM_RX_CONTROL_P20_VDI  | 
 		RFM_RX_CONTROL_VDI_FAST |
 		RFM_RX_CONTROL_BW(RFM_BAUD_RATE) |
-		RFM_RX_CONTROL_GAIN_0   |
-		RFM_RX_CONTROL_RSSI_85
+		RFM_RX_CONTROL_GAIN_14   |
+		RFM_RX_CONTROL_RSSI_97
 	 );
 
 	// 6. Data Filter Command
@@ -181,7 +181,14 @@ void RFM_init(void)
 	 );
 
     // 12. PLL Setting Command
-    
+	RFM_SPI_16(
+		RFM_PLL					|
+		RFM_PLL_uC_CLK_10		|
+		RFM_PLL_DELAY_OFF		|
+		RFM_PLL_DITHER_OFF		|
+		RFM_PLL_BIRATE_LOW		
+	);
+
 	// 13. Transmitter Register Write Command
 
 	// 14. Wake-Up Timer Command
@@ -250,14 +257,17 @@ void RFM_interrupt(uint8_t pine)
 // RFM module interupt
 volatile uint8_t afc = 0;
 ISR (RFM_INT_vect){
-  uint16_t status = RFM_READ_STATUS();  // this also clears most interrupt sources
 #if (JEENODE == 1)
+  uint16_t status = RFM_READ_STATUS();  // this also clears most interrupt sources
   if (status & RFM_STATUS_RGIT) {       // we are using level interrupt on jeenode
 #else
   while (RFM_SDO_PIN & _BV(RFM_SDO_BITPOS)) {
 #endif
       RFM_INT_DIS();  // disable RFM interrupt
       sei(); // enable global interrupts
+#if (JEENODE == 0)
+      uint16_t status = RFM_READ_STATUS();  // this also clears most interrupt sources
+#endif
       if (rfm_mode == rfmmode_tx) {
             RFM_WRITE(rfm_framebuf[rfm_framepos++]);
             if (rfm_framepos >= rfm_framesize) {
